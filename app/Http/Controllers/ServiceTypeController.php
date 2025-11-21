@@ -8,13 +8,18 @@ use App\Models\ServiceType;
 use App\Services\ServiceType\ManageService;
 use Illuminate\Http\Request;
 use App\Docs\ServiceType as DocsServiceType ;
+use App\Http\Requests\Image\UploadImageRequest;
+use App\Services\Image\ImageService;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ServiceTypeController extends Controller
 {
     protected $service ;
-    public function __construct(ManageService $service)
+    protected $imageService ;
+    public function __construct(ManageService $service , ImageService $imageService)
     {
         $this->service = $service ;
+        $this->imageService = $imageService ;
     }
     /**
      * @OA\Get(
@@ -38,7 +43,12 @@ class ServiceTypeController extends Controller
      */
     public function index()
     {
-        $allServices = ServiceType::with('serviceRequests')->paginate(10);
+        $user = JWTAuth::parseToken()->authenticate();
+
+        // Conditionally eager load serviceRequests for admin users
+        $allServices = $user->hasRole('admin')
+            ? ServiceType::with(['serviceRequests', 'images'])->paginate(10)
+            : ServiceType::with('images')->paginate(10);
         return self::paginated($allServices);
     }
 
@@ -77,11 +87,12 @@ class ServiceTypeController extends Controller
      *     )
      * )
      */
-    public function store(CreateServiceRequest $request)
+    public function store(CreateServiceRequest $request , UploadImageRequest $uploadRequest)
     {
-        $info = $this->service->create($request->validated());
+        $photos = $uploadRequest->file('images');
+        $info = $this->service->create($request->validated() , $photos);
         return $info['status'] == 'success'
-            ? self::success([$info['data']] , 201)
+            ? self::success(['service' =>$info['data']['service'] , 'photo_info' => $info['data']['photos'] ?? null] , 201)
             : self::error($info['message'] , $info['status'] ,$info['code'] ,[$info['errors']]);
     }
 

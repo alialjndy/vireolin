@@ -14,4 +14,8 @@ class ServiceType extends Model
     {
         return $this->hasMany(ServiceRequest::class, 'service_id');
     }
+    public function images()
+    {
+        return $this->hasMany(Image::class, 'service_id');
+    }
 }
