@@ -139,7 +139,7 @@ class AuthController extends Controller
         $info = $this->service->login($request->validated());
         return $info['status'] == 'success'
             ? self::success($info['data'] ,200 ,$info['message'])
-            : self::error('Error Occurred' ,$info['status'] , $info['code']);
+            : self::error('Error Occurred' ,$info['status'] , $info['code'] ?? 500);
     }
     /**
      * @OA\Post(
