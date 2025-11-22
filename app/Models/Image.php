@@ -10,4 +10,12 @@ class Image extends Model
         'image_path',
         'service_id',
     ];
+    protected $appends = ['url'];
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+    public function getUrlAttribute(){
+        return url('storage/'. $this->image_path);
+    }
 }
