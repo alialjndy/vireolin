@@ -40,16 +40,20 @@ class AuthService{
             if(!JWTAuth::attempt($data)){
                 return $this->failedResponse('failed' ,'Invalid credentials. Please try again.' ,[] ,401);
             }else{
+                $token = JWTAuth::attempt($data);
+                $user  = JWTAuth::user();
+                $roles = $user->getRoleNames();
+
                 return $this->successResponse(
                     'success',
                     'Logged in Successfully!',
-                    ['token' =>JWTAuth::attempt($data) ,'user' => JWTAuth::user() ,'roles' => JWTAuth::user()->getRoleNames()],
+                    ['token' =>$token  ,'user' => ['name' => $user->name , 'email' => $user->email] ,'roles' => $roles],
                     200
                 );
             }
         }catch(Exception $e){
             Log::error('Error when Login User '. $e->getMessage());
-            return $this->failedResponse('failed' ,'Error Occurred!' ,[] ,$e->getCode());
+            return $this->failedResponse('failed' ,'Error Occurred!' ,[] ,$e->getCode() ?? 500);
         }
     }
     public function logout(){
