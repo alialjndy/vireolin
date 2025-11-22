@@ -7,7 +7,7 @@ use App\Http\Requests\Service\UpdateServiceRequest;
 use App\Models\ServiceType;
 use App\Services\ServiceType\ManageService;
 use Illuminate\Http\Request;
-use App\Docs\ServiceType as DocsServiceType ;
+use App\Http\Requests\Image\UpdateImageRequest;
 use App\Http\Requests\Image\UploadImageRequest;
 use App\Services\Image\ImageService;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -47,7 +47,7 @@ class ServiceTypeController extends Controller
 
         // Conditionally eager load serviceRequests for admin users
         $allServices = $user->hasRole('admin')
-            ? ServiceType::with(['serviceRequests', 'images'])->paginate(10)
+            ? ServiceType::with(['serviceBookings', 'images'])->paginate(10)
             : ServiceType::with('images')->paginate(10);
         return self::paginated($allServices);
     }
@@ -164,11 +164,21 @@ class ServiceTypeController extends Controller
      *     )
      * )
      */
-    public function update(UpdateServiceRequest $request, ServiceType $serviceType)
+    public function update(UpdateServiceRequest $request,UpdateImageRequest $imgRequest ,ServiceType $serviceType)
     {
-        $info = $this->service->update($request->validated() , $serviceType);
+        $uploadedPhotos = $imgRequest->file('new_photos'); // New photos to upload
+
+        $deletePhotos = $imgRequest->input('deleted_photos'); // IDs of photos to delete
+
+        $info = $this->service->update($request->validated() , $serviceType , $uploadedPhotos , $deletePhotos);
         return $info['status'] == 'success'
-            ? self::success([$info['data']] , 200)
+            ? self::success(
+                [
+                    'service' =>$info['data']['service'],
+                    'message stored' => $info['data']['message stored'] ?? null,
+                    'message deleted' => $info['data']['message deleted'] ?? null
+                ] ,
+                200)
             : self::error($info['message'] , $info['status'] ,$info['code'] ,[$info['errors']]);
     }
 
@@ -201,7 +211,10 @@ class ServiceTypeController extends Controller
     public function destroy(ServiceType $serviceType)
     {
         $this->authorize('delete', $serviceType);
-        $serviceType->delete();
-        return self::success([]);
+        $info = $this->service->delete($serviceType);
+
+        return $info['status'] == 'success'
+            ? self::success([$info['data']])
+            : self::error($info['message'] ,$info['status'] ,$info['code'] ,[$info['errors']]);
     }
 }
