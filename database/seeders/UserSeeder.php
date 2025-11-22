@@ -21,6 +21,14 @@ class UserSeeder extends Seeder
             'phone_number' => '1234567890',
             'email_verified_at' => now(),
         ]);
+        $customer = User::create([
+            'name' => 'Customer User',
+            'email' => 'customer@gmail.com',
+            'password' => Hash::make('Password123!'),
+            'phone_number' => '123456789',
+            'email_verified_at' => now(),
+        ]);
         $admin->assignRole('admin');
+        $customer->assignRole('customer');
     }
 }
